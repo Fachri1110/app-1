@@ -1,0 +1,70 @@
+name: 🚀 Deploy Web2 ke Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main   # Jalankan otomatis setiap kali ada push ke branch main
+
+jobs:
+  deploy:
+    name: 🔧 Proses Deploy ke Server Oracle
+    runs-on: ubuntu-latest
+
+    steps:
+      #################################################################
+      # 🧩 1️⃣ Checkout Source Code dari Repository
+      #################################################################
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      #################################################################
+      # 🚀 2️⃣ Deploy ke Server via SSH
+      #################################################################
+      - name: 🚀 Jalankan Script Deploy di Server Oracle
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_IP }}             # Alamat IP server Oracle
+          username: ubuntu                           # Username SSH (default Ubuntu)
+          key: ${{ secrets.SSH_PRIVATE_KEY }}        # Private key dari GitHub Secrets
+          script: |
+            set -e  # Hentikan proses jika ada error
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📂 Membuat direktori web jika belum ada..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            sudo mkdir -p /var/www/web2.com/public_html
+            sudo chown -R ubuntu:ubuntu /var/www/web2.com
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📁 Pindah ke direktori project..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            cd /var/www/web2.com/public_html
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🧠 Mengecek repository..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            if [ ! -d ".git" ]; then
+              echo "🔰 Inisialisasi repository baru..."
+              git init
+              git remote add origin https://github.com/Artazzz/web2-app.git
+              git fetch origin main
+              git checkout -t origin/main
+            else
+              echo "♻️ Update repository dari origin/main..."
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🧾 Mengecek konfigurasi Nginx..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            sudo nginx -t
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🔄 Reload Nginx Service..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            sudo systemctl reload nginx
+
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ DEPLOY SELESAI DENGAN SUKSES!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
